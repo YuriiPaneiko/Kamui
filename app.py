@@ -1,4 +1,5 @@
 import sqlite3
+import paramiko
 from flask import Flask, render_template, request, url_for, flash, redirect, escape
 from werkzeug.exceptions import abort
 
@@ -45,13 +46,13 @@ def create():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-
+        agent = request.form['agent'] 
         if not title:
             flash('Title is required!')
         else:
             conn = get_db_connection()
-            conn.execute('INSERT INTO posts (title, content) VALUES (?, ?)',
-                         (title, content))
+            conn.execute('INSERT INTO posts (title, agent, content) VALUES (?, ?, ?)',
+                         (title, agent, content))
             conn.commit()
             conn.close()
             return redirect(url_for('index'))
@@ -91,3 +92,33 @@ def delete(id):
     conn.close()
     flash('"{}" was successfully deleted!'.format(post['title']))
     return redirect(url_for('index'))
+
+@app.route('/execute')
+def execute():
+    hostname=""
+    username=""
+    password=""
+
+    commands = [
+        "ls"
+    ]
+
+    # initialize the SSH client
+    client = paramiko.SSHClient()
+    # add to known hosts
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(hostname=hostname, username=username, password=password)
+    except:
+        print("[!] Cannot connect to the SSH Server")
+        exit()
+
+    # execute the commands
+    for command in commands:
+        print("="*50, command, "="*50)
+        stdin, stdout, stderr = client.exec_command(command)
+        print(stdout.read().decode())
+        err = stderr.read().decode()
+        if err:
+            print(err)
+
