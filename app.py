@@ -1,8 +1,8 @@
 import sqlite3
-import paramiko
-from flask import Flask, render_template, request, url_for, flash, redirect, escape
+import paramiko,datetime,time
+from flask import Flask, render_template, request, url_for, flash, redirect, escape,redirect,Response
 from werkzeug.exceptions import abort
-
+from shelljob import proc
 
 def get_db_connection():
     conn = sqlite3.connect('database.db')
@@ -93,17 +93,20 @@ def delete(id):
     flash('"{}" was successfully deleted!'.format(post['title']))
     return redirect(url_for('index'))
 
-@app.route('/execute')
-def execute():
+# @app.route('/execute')
+@app.route('/<int:id>/execute')
+def execute(id):
+    post = get_post(id)
+    conn = get_db_connection()
+    result=conn.execute('SELECT * FROM posts').fetchone()
+
+    conn.close()
+    print (result['content'])
+
     hostname=""
     username=""
     password=""
 
-    commands = [
-        "ls"
-    ]
-
-    # initialize the SSH client
     client = paramiko.SSHClient()
     # add to known hosts
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -112,13 +115,30 @@ def execute():
     except:
         print("[!] Cannot connect to the SSH Server")
         exit()
-
-    # execute the commands
+    commands = [
+        result['content']
+    ]
     for command in commands:
-        print("="*50, command, "="*50)
         stdin, stdout, stderr = client.exec_command(command)
-        print(stdout.read().decode())
-        err = stderr.read().decode()
-        if err:
-            print(err)
+        for line in stdout:
+            # print('... ' + line.strip('\n'))
+            
+            file = open('sh_ver.txt', 'a')
+            file.write(''.join(line.strip('\n')))
+            file.write('\n')
+            file.close()
+        for line in stderr:
+            print('... ' + line.strip('\n'))
+    with open("sh_ver.txt", "r") as f:
+        content = f.read()
+    return redirect(url_for('logs'))
+    
+    
+
+@app.route('/logs')
+def logs():
+    with open("sh_ver.txt", "r") as f:
+        content = f.read()
+    return render_template("logs.html", content=content)
+
 

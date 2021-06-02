@@ -4,4 +4,10 @@ h1 {
     text-align: center;
     padding: 10px;
 }
-
+#block_container {
+    text-align: center;
+}
+#block_container > div {
+    display: inline-block;
+    vertical-align: middle;
+}
