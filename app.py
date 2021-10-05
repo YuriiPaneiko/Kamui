@@ -98,17 +98,12 @@ def delete(id):
 def execute(id):
     post = get_post(id)
     conn = get_db_connection()
-    result=conn.execute('SELECT * FROM posts').fetchone()
-
+    result=conn.execute('SELECT * FROM posts WHERE id = ? ', (id,)  ).fetchone()
     conn.close()
-    print (result['content'])
-
     hostname=""
     username=""
     password=""
-
     client = paramiko.SSHClient()
-    # add to known hosts
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         client.connect(hostname=hostname, username=username, password=password)
@@ -121,8 +116,6 @@ def execute(id):
     for command in commands:
         stdin, stdout, stderr = client.exec_command(command)
         for line in stdout:
-            # print('... ' + line.strip('\n'))
-            
             file = open('sh_ver.txt', 'a')
             file.write(''.join(line.strip('\n')))
             file.write('\n')
@@ -132,6 +125,7 @@ def execute(id):
     with open("sh_ver.txt", "r") as f:
         content = f.read()
     return redirect(url_for('logs'))
+
     
     
 
@@ -140,5 +134,4 @@ def logs():
     with open("sh_ver.txt", "r") as f:
         content = f.read()
     return render_template("logs.html", content=content)
-
 
